@@ -17,6 +17,8 @@
 import argparse
 import codecs
 import datetime
+import hashlib
+import json
 import os
 import platform
 import posixpath
@@ -25,6 +27,7 @@ import socket
 import subprocess
 import sys
 import webbrowser
+from pathlib import Path
 
 if sys.version > '3':
     from http.server import SimpleHTTPRequestHandler, HTTPServer
@@ -43,6 +46,17 @@ IS_WINDOWS = platform.system() == "Windows"
 allowed_hosts =  ["127.0.0.1", "localhost"]
 
 
+BOOT_FOLDER = Path("C:/TwinCAT/3.1/Boot")
+
+
+def get_plc_hashes():
+    hashes = {}
+    for p in BOOT_FOLDER.glob("**/*.tizip"):
+        if p.is_file():
+            with open(p, "rb") as f:
+                digest = hashlib.file_digest(f, "sha256")
+                hashes[p.name] = digest.hexdigest()
+    return hashes
 
 
 class WebUiHttpServer(HTTPServer):
@@ -109,6 +123,9 @@ class WebUiRequestHandler(SimpleHTTPRequestHandler):
         elif self.path == "/viewonly":
             vo = "1" if self.is_view_only() else "0"
             self.send_text(200, codecs.encode(vo, "utf-8"))
+        elif self.path == "/plc_hashes":
+            hashes = get_plc_hashes()
+            self.send_json(200, hashes)
         elif self.is_git_request():
             self.process_http_backend()
         else:
@@ -216,6 +233,13 @@ class WebUiRequestHandler(SimpleHTTPRequestHandler):
         self.wfile.write(text)
 
 
+    def send_json(self, http_status, obj : dict):
+        json_str = json.dumps(obj)
+        self.send_response(http_status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", len(json_str))
+        self.end_headers()
+        self.wfile.write(json_str.encode(encoding='utf_8'))
 
 
 def auto_update():

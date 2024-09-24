@@ -321,6 +321,9 @@ webui.SideBarView = function(mainView) {
                                 '<section id="sidebar-tags">' +
                                     '<h4>Tags</h4>' +
                                 '</section>' +
+                                '<section id="sidebar-plc">' +
+                                    '<h4>PLC version</h4>' +
+                                '</section>' +
                             '</div>' +
                         '</div>')[0];
 
@@ -339,6 +342,12 @@ webui.SideBarView = function(mainView) {
             $("*", self.element).removeClass("active");
             syncElement.addClass("active");
             self.mainView.syncView.update();
+        });
+        var plcElement = $("#sidebar-plc h4", self.element);
+        plcElement.click(function (event) {
+            $("*", self.element).removeClass("active");
+            $(plcElement).addClass("active");
+            self.mainView.plcView.update();
         });
     }
 
@@ -1764,6 +1773,36 @@ webui.SyncView = function(mainView) {
 };
 
 /*
+ * == PLCView =======================================================
+ */
+webui.PLCView = function(mainView) {
+
+    var self = this;
+
+    self.show = function() {
+        mainView.switchTo(self.element);
+    };
+
+    self.update = function() {
+        self.show();
+        var hashesElement = $(".hashes", self.element);
+        hashesElement.empty();
+        $.get("/plc_hashes", function (data) {
+            for (const filename in data) {
+                var li = $(`<li>${filename}: ${data[filename]}</li>`);
+                li.appendTo(hashesElement);
+            }
+        })
+    };
+
+    self.element = $('<div class="jumbotron">' +
+                        '<h1>PLC runtime hashes</h1>' +
+                        '<ul class="hashes">' +
+                        '</ul>' +
+                    '</div>')[0];
+};
+
+/*
  *  == Initialization =========================================================
  */
 function MainUi() {
@@ -1796,6 +1835,7 @@ function MainUi() {
 
                 self.historyView = new webui.HistoryView(self);
                 self.remoteView = new webui.RemoteView(self);
+                self.plcView = new webui.PLCView(self);
                 if (!webui.viewonly) {
                     self.syncView = new webui.SyncView(self);
                     self.workspaceView = new webui.WorkspaceView(self);
