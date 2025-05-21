@@ -1478,6 +1478,7 @@ webui.ChangedFilesView = function(workspaceView, type, label) {
                     var item = $('<a class="list-group-item">').appendTo(fileList)[0];
                     item.status = status;
                     line = line.substr(3);
+                    line = line.substr(3).replaceAll('"', '');
                     var splitted = line.split(" -> ");
                     if (splitted.length > 1) {
                         item.model = splitted[1];
